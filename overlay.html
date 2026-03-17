@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+
 <style>
 body {
   margin: 0;
@@ -10,28 +11,47 @@ body {
   color: white;
 }
 
+/* 전체 박스 */
 .container {
-  padding: 10px 14px;
-  background: rgba(0,0,0,0.4);
-  border-radius: 10px;
-  width: fit-content;
+  padding: 12px 18px;
+  background: rgba(0,0,0,0.45);
+  border-radius: 12px;
+  width: 360px;
 }
 
+/* 제목 */
 .title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: bold;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
+/* 한 줄 구조 */
 .row {
   display: grid;
-  grid-template-columns: 30px 120px 50px 70px;
-  font-size: 14px;
-  margin: 2px 0;
+  grid-template-columns: 40px 1fr 100px;
+  font-size: 15px;
+  margin: 3px 0;
+  align-items: center;
 }
 
+/* 순서 */
 .rank {
   color: #ffd700;
+}
+
+/* 닉네임 */
+.name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 시간 */
+.time {
+  text-align: right;
+  color: #ddd;
+  font-size: 13px;
 }
 </style>
 </head>
@@ -44,38 +64,55 @@ body {
 
 <script>
 async function loadData() {
-  const res = await fetch("clear_log.json?cache=" + new Date().getTime());
-  const data = await res.json();
+  try {
+    const res = await fetch("clear_log.json?cache=" + new Date().getTime());
 
-  const entries = Object.entries(data)
-    .sort((a,b) => new Date(a[1].time) - new Date(b[1].time))
-    .slice(0, 7);
+    if (!res.ok) throw new Error("JSON 로드 실패");
 
-  // 상단 텍스트
-  const now = new Date();
-  const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const data = await res.json();
 
-  document.getElementById("title").innerText =
-    `토벌 25 달성 현황 : ${entries.length}명 (${timeStr} 기준)`;
+    const entries = Object.values(data)
+      .sort((a, b) => new Date(a.time) - new Date(b.time))
+      .slice(0, 7);
 
-  // 리스트
-  const listHTML = entries.map((x, i) => {
-    return `
+    // 현재 시간
+    const now = new Date();
+    const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    // 제목
+    document.getElementById("title").innerText =
+      `토벌 25 달성 현황 : ${entries.length}명 (${timeStr} 기준)`;
+
+    // 리스트
+    const listHTML = entries.map((x, i) => `
       <div class="row">
         <div class="rank">${i+1}</div>
-        <div>${x[0]}</div>
-        <div>${x[1].server}</div>
-        <div>${x[1].time}</div>
+        <div class="name">${x.name}</div>
+        <div class="time">${x.time}</div>
       </div>
-    `;
-  }).join("");
+    `).join("");
 
-  document.getElementById("list").innerHTML = listHTML;
+    document.getElementById("list").innerHTML = listHTML;
+
+  } catch (err) {
+    document.getElementById("title").innerText = "❌ 데이터 로딩 실패";
+    document.getElementById("list").innerText = err;
+  }
 }
 
-// 10초마다 갱신
-setInterval(loadData, 10000);
+/* 🔥 5분 정각 맞춰 시작 */
+function startAutoUpdate() {
+  const now = new Date();
+  const delay = (5 - (now.getMinutes() % 5)) * 60 * 1000;
+
+  setTimeout(() => {
+    loadData();
+    setInterval(loadData, 300000);
+  }, delay);
+}
+
 loadData();
+startAutoUpdate();
 </script>
 
 </body>
